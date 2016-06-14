@@ -48,6 +48,12 @@
 #include "audio_defs.h"
 #include "voice.h"
 
+#define APP_TYPE_NONE       (-1)
+#define APP_TYPE_VOIP        0
+#define APP_TYPE_LAKALA      1
+#define APP_TYPE_NORMAL      2
+#define APP_RECODER_TYPE    "AppRecTy"
+
 #define VISUALIZER_LIBRARY_PATH "/system/lib/soundfx/libqcomvisualizer.so"
 #define OFFLOAD_EFFECTS_BUNDLE_LIBRARY_PATH "/system/lib/soundfx/libqcompostprocbundle.so"
 #define ADM_LIBRARY_PATH "/system/vendor/lib/libadm.so"
@@ -307,6 +313,14 @@ struct audio_device {
     struct mixer *mixer;
     audio_mode_t mode;
     audio_devices_t out_device;
+#ifdef VENDOR_EDIT
+    bool mEnginnerModeMicTest;
+    bool mEnginnerModeReceiverTest;
+    bool mSkypeHeassetMode;
+    bool myrecoder;
+    bool MMIReciverTest_63;
+    bool mRingMode;
+#endif/*VENDOR_EDIT*/
     struct stream_in *active_input;
     struct stream_out *primary_output;
     struct stream_out *voice_tx_output;
@@ -329,6 +343,15 @@ struct audio_device {
     unsigned int cur_codec_backend_bit_width;
     bool is_channel_status_set;
     void *platform;
+#ifdef VENDOR_EDIT
+    bool muted;
+    bool is_alarm;
+    int app_recoder_type;
+    bool is_wechat_voice_msg;
+    bool is_wechat_16k;
+    bool is_voip_app_dl;
+    bool is_lakal_app_dl;
+#endif
     unsigned int offload_usecases_state;
     void *visualizer_lib;
     int (*visualizer_start_output)(audio_io_handle_t, int);
@@ -358,6 +381,10 @@ struct audio_device {
     int perf_lock_handle;
     int perf_lock_opts[MAX_PERF_LOCK_OPTS];
     int perf_lock_opts_size;
+#ifdef VENDOR_EDIT
+    uint32_t force_device;
+    uint32_t original_device;
+#endif
 };
 
 int select_devices(struct audio_device *adev,
@@ -394,3 +421,4 @@ audio_usecase_t get_usecase_id_from_usecase_type(const struct audio_device *adev
  */
 
 #endif // QCOM_AUDIO_HW_H
+
