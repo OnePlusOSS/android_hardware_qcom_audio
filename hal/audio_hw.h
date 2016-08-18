@@ -231,6 +231,19 @@ struct audio_device {
     audio_mode_t mode;
     audio_devices_t out_device;
     struct stream_in *active_input;
+#ifdef VENDOR_EDIT
+/* wangdongdong@MultiMedia.AudioDrv on 2015-07-03,add for skype	*/
+    snd_device_t active_out_snd_device;
+#endif
+#ifdef VENDOR_EDIT
+//lifei@OnePlus.MultiMediaService, 2015/05/30, add by lifei for loudly audio params for ringtone
+    bool mRingMode;
+#endif/*VENDOR_EDIT*/
+#ifdef VENDOR_EDIT_DSP
+//#lifei@OnePlus.MultiMediaService, 2015/09/28 add Dirac set/get dsp interface
+    bool mIsHalDiracEnable;
+    int  mIsHalDiracHeadset;
+#endif/*VENDOR_EDIT_DSP*/
     struct stream_out *primary_output;
     struct stream_out *voice_tx_output;
     struct stream_out *current_call_output;
@@ -256,6 +269,12 @@ struct audio_device {
     int (*offload_effects_stop_output)(audio_io_handle_t, int);
 
     struct sound_card_status snd_card_status;
+#ifdef VENDOR_EDIT
+//guoguangyi@mutimedia,2015.9.25,add interface for force earpiece
+    uint32_t force_device;
+    uint32_t original_device;
+	bool is_wechat_16k;
+#endif
 };
 
 int select_devices(struct audio_device *adev,

@@ -64,7 +64,11 @@
 #define PROXY_OPEN_WAIT_TIME             20
 
 #define USECASE_AUDIO_PLAYBACK_PRIMARY USECASE_AUDIO_PLAYBACK_DEEP_BUFFER
-
+#ifdef VENDOR_EDIT
+//guoguangyi@mutimedia,2015.9.25,add interface for force earpiece
+#define PCM_REOPEN_MARK 0x80000000
+#define FORCE_USE_MARK 0x7fffffff
+#endif
 struct pcm_config pcm_config_deep_buffer = {
     .channels = 2,
     .rate = DEFAULT_OUTPUT_SAMPLING_RATE,
@@ -220,15 +224,18 @@ static int check_and_set_gapless_mode(struct audio_device *adev) {
 static bool is_supported_format(audio_format_t format)
 {
     if (format == AUDIO_FORMAT_MP3 ||
-#ifdef EXTN_OFFLOAD_ENABLED
-        format == AUDIO_FORMAT_PCM_16_BIT_OFFLOAD ||
-        format == AUDIO_FORMAT_PCM_24_BIT_OFFLOAD ||
-#endif
+#ifdef VENDOR_EDIT
+//lifei@OnLineRD.MultiMediaService, 2015/05/12, Modify for support 96Khz AAC music
+        format == AUDIO_FORMAT_AAC ||
+#endif /* VENDOR_EDIT*/
         format == AUDIO_FORMAT_AAC_LC ||
         format == AUDIO_FORMAT_AAC_HE_V1 ||
-        format == AUDIO_FORMAT_AAC_HE_V2 ){
-        return true;
-    }
+        format == AUDIO_FORMAT_AAC_HE_V2 ||
+        format == AUDIO_FORMAT_PCM_16_BIT_OFFLOAD ||
+        format == AUDIO_FORMAT_PCM_24_BIT_OFFLOAD ||
+        format == AUDIO_FORMAT_FLAC)
+           return true;
+
     return false;
 }
 
@@ -513,7 +520,13 @@ static void check_usecases_codec_backend(struct audio_device *adev,
             /* Update the out_snd_device only before enabling the audio route */
             if (switch_device[usecase->id] ) {
                 usecase->out_snd_device = snd_device;
+            #ifdef VENDOR_EDIT
+            /*wangdongdong@MultiMediaService,2016/07/22,remove VOIP_CALL to enable audio route
+             *sovle the issue(TRDM-485) change to handfree mode for 10 seconds delay*/
+                if (usecase->type != VOICE_CALL)
+            #else
                 if (usecase->type != VOICE_CALL && usecase->type != VOIP_CALL)
+            #endif
                     enable_audio_route(adev, usecase);
             }
         }
@@ -547,7 +560,13 @@ static void check_and_route_capture_usecases(struct audio_device *adev,
         if (usecase->type != PCM_PLAYBACK &&
                 usecase != uc_info &&
                 usecase->in_snd_device != snd_device &&
-                (usecase->devices & AUDIO_DEVICE_OUT_ALL_CODEC_BACKEND)) {
+#ifndef VENDOR_EDIT
+/*wangdongdong@MultiMediaService,2015/12/12,solve the issue of voice call recording tx no sound*/
+                (usecase->devices & AUDIO_DEVICE_OUT_ALL_CODEC_BACKEND)
+#else
+                (usecase->id != USECASE_AUDIO_SPKR_CALIB_TX)
+#endif
+       ){
             ALOGV("%s: Usecase (%s) is active on (%s) - disabling ..",
                   __func__, use_case_table[usecase->id],
                   platform_get_snd_device_name(usecase->in_snd_device));
@@ -693,6 +712,16 @@ int select_devices(struct audio_device *adev, audio_usecase_t uc_id)
                  (voip_usecase->stream.out != adev->primary_output))) {
                     in_snd_device = voip_usecase->in_snd_device;
                     out_snd_device = voip_usecase->out_snd_device;
+            #ifdef VENDOR_EDIT
+            /*end voip call and continue playback music will choose the original device
+             *the device is speaker and headphones
+             *the combine device is used to playback ring of ending voip call
+             *wangdongdong@MultiMediaService,2015/12/16,set output device to none*/
+                    if(adev->mode == AUDIO_MODE_NORMAL && (adev->mRingMode == false))
+                    {
+                        out_snd_device = SND_DEVICE_NONE;
+                    }
+            #endif
             }
         } else if (audio_extn_hfp_is_active(adev)) {
             hfp_ucid = audio_extn_hfp_get_usecase();
@@ -714,10 +743,25 @@ int select_devices(struct audio_device *adev, audio_usecase_t uc_id)
             if (out_snd_device == SND_DEVICE_NONE) {
                 out_snd_device = platform_get_output_snd_device(adev->platform,
                                             usecase->stream.out->devices);
+#ifdef VENDOR_EDIT
+                adev->active_out_snd_device = out_snd_device;
+#endif
                 if (usecase->stream.out == adev->primary_output &&
                         adev->active_input ) {
                     select_devices(adev, adev->active_input->usecase);
                 }
+#ifdef VENDOR_EDIT
+/* wangdongdong@MultiMedia.AudioDrv on 2015-07-03,add for skype mic */
+               if (usecase->stream.out == adev->primary_output &&
+                        adev->active_input &&
+                        adev->active_input->usecase == USECASE_AUDIO_RECORD &&
+                        (adev->mode == AUDIO_MODE_IN_COMMUNICATION) &&
+                        out_snd_device != usecase->out_snd_device && usecase->id != USECASE_AUDIO_PLAYBACK_LOW_LATENCY ) {
+                                 ALOGD("%s: select_devices PCM_PLAYBACK capture",__func__);
+                                 adev->active_out_snd_device = out_snd_device;
+                                 select_devices(adev, adev->active_input->usecase);
+                        }
+#endif
             }
         } else if (usecase->type == PCM_CAPTURE) {
             usecase->devices = usecase->stream.in->device;
@@ -752,7 +796,14 @@ int select_devices(struct audio_device *adev, audio_usecase_t uc_id)
     if (usecase->type == VOICE_CALL || usecase->type == VOIP_CALL) {
         status = platform_switch_voice_call_device_pre(adev->platform);
     }
-
+#ifndef VENDOR_EDIT
+/*wangdongdong@MultiMediaService,2015/10/07,add output device for playback during voip*/
+    if(out_snd_device == SND_DEVICE_OUT_VOIP_HANDSET && voice_extn_compress_voip_is_active(adev))
+    {
+	    adev->snd_dev_ref_cnt[SND_DEVICE_OUT_VOICE_HANDSET] = 1;
+		disable_snd_device(adev, SND_DEVICE_OUT_VOICE_HANDSET);
+	}
+#endif
     /* Disable current sound devices */
     if (usecase->out_snd_device != SND_DEVICE_NONE) {
         disable_audio_route(adev, usecase);
@@ -1205,6 +1256,16 @@ int start_output_stream(struct stream_out *out)
     struct audio_usecase *uc_info;
     struct audio_device *adev = out->dev;
     int snd_card_status = get_snd_card_state(adev);
+#ifdef VENDOR_EDIT
+//guoguangyi@mutimedia,2015.9.25,add interface for force earpiece
+    if((adev->force_device & FORCE_USE_MARK) != 0){
+        ALOGI("original devices:%#x", out->devices & AUDIO_DEVICE_OUT_ALL);
+        adev->original_device = out->devices & AUDIO_DEVICE_OUT_ALL;
+        adev->force_device &= FORCE_USE_MARK;
+        out->devices = adev->force_device;
+
+    }
+#endif
 
     ALOGD("%s: enter: stream(%p)usecase(%d: %s) devices(%#x)",
           __func__, &out->stream, out->usecase, use_case_table[out->usecase],
@@ -1282,6 +1343,15 @@ int start_output_stream(struct stream_out *out)
         }
     } else {
         out->pcm = NULL;
+        #ifdef VENDOR_EDIT
+        //guoguangyi@mmutimedia,2016.4.23,offload force use 24bits
+        if(out->devices == AUDIO_DEVICE_OUT_WIRED_HEADSET ||
+           out->devices == AUDIO_DEVICE_OUT_WIRED_HEADPHONE){
+            ALOGI("OFFLOAD DEV:%d", out->devices);
+            //out->compr_config.codec->format = SNDRV_PCM_FORMAT_S24_LE;
+            out->compr_config.codec->bit_rate = 24;
+        }
+        #endif
         out->compr = compress_open(adev->snd_card,
                                    out->pcm_device_id,
                                    COMPRESS_IN, &out->compr_config);
@@ -1556,7 +1626,16 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
         if ((out->devices == AUDIO_DEVICE_OUT_AUX_DIGITAL ||
                 out->devices == AUDIO_DEVICE_OUT_ANLG_DOCK_HEADSET) &&
                 val == AUDIO_DEVICE_NONE) {
-            val = AUDIO_DEVICE_OUT_SPEAKER;
+#ifdef VENDOR_EDIT
+//guoguangyi@mutimedia,2015.9.25,add interface for force earpiece
+            if((adev->force_device & FORCE_USE_MARK) != 0){
+                val = AUDIO_DEVICE_OUT_SPEAKER;
+                 adev->original_device = AUDIO_DEVICE_OUT_SPEAKER;
+                 ALOGI("out_set_parameter use earpiece instead of  AUDIO_DEVICE_OUT_SPEAKER");
+            }else
+#endif
+                val = AUDIO_DEVICE_OUT_SPEAKER;
+
         }
 
         /*
@@ -1578,7 +1657,15 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
          *       playback to headset.
          */
         if (val != 0) {
-            out->devices = val;
+#ifdef VENDOR_EDIT
+//guoguangyi@mutimedia,2015.9.25,add interface for force earpiece
+            if((adev->force_device & FORCE_USE_MARK) != 0){
+                out->devices = adev->force_device;
+                adev->original_device = val & AUDIO_DEVICE_OUT_ALL;
+                ALOGI("out_set_parameter use earpiece instead of %d", val);
+            }else
+#endif
+                out->devices = val;
 
             if (!out->standby)
                 select_devices(adev, out->usecase);
@@ -1614,6 +1701,25 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
         parse_compress_metadata(out, parms);
         pthread_mutex_unlock(&out->lock);
     }
+
+#ifdef VENDOR_EDIT
+//lifei@OnePlus.MultiMediaService, 2015/05/30, add by lifei for loudly audio params for ringtone
+    err = str_parms_get_str(parms, "playback", value, sizeof(value));
+    if (err >= 0) {
+        if(!strcmp(value, "ring")) {
+            ALOGD("playback is ring");
+            adev->mRingMode = true;
+            if(out->devices == AUDIO_DEVICE_OUT_SPEAKER){
+                //add by LF for ring 80 in 2014.06.19
+                out_standby(&out->stream.common);
+                //add end
+            }
+        }else if (!strcmp(value, "music")) {
+            ALOGD("playback is music");
+            adev->mRingMode = false;
+        }
+    }
+#endif/*VENDOR_EDIT*/
 
     str_parms_destroy(parms);
     ALOGV("%s: exit: code(%d)", __func__, ret);
@@ -1731,7 +1837,15 @@ static ssize_t out_write(struct audio_stream_out *stream, const void *buffer,
             return -ENETRESET;
         }
     }
-
+#ifdef VENDOR_EDIT
+//guoguangyi@mutimedia,2015.9.25,add interface for force earpiece
+    if(!out->standby && (adev->force_device & PCM_REOPEN_MARK)){
+        adev->force_device &= FORCE_USE_MARK;// clean reopen mark
+        pthread_mutex_unlock(&out->lock);
+        out_standby(&out->stream.common);
+        pthread_mutex_lock(&out->lock);
+    }
+#endif
     if (out->standby) {
         out->standby = false;
         pthread_mutex_lock(&adev->lock);
@@ -1787,7 +1901,12 @@ static ssize_t out_write(struct audio_stream_out *stream, const void *buffer,
             if (ret < 0)
                 ret = -errno;
             else if (ret == 0)
+                #ifndef VENDOR_EDIT_AUDIOMIXER_PCM_24_BIT
+                //kangjirui@OnLineRD.MultiMediaService, 2015/01/20, Modify for CTS
                 out->written += bytes / (out->config.channels * sizeof(short));
+                #else /* VENDOR_EDIT */
+                out->written += bytes / (out->config.channels * audio_bytes_per_sample(out->format));
+                #endif /* VENDOR_EDIT */
         }
     }
 
@@ -2059,6 +2178,17 @@ static int in_standby(struct audio_stream *stream)
         ALOGV("%s: Ignore Standby in VOIP call", __func__);
         return status;
     }
+#ifdef VENDOR_EDIT
+/* wangdongdong@MultiMedia.AudioDrv on 2015-07-03,add for skype mic */
+    if ((adev->active_input!=NULL) && (adev->active_input->usecase== USECASE_AUDIO_RECORD )
+         && (adev->mode == AUDIO_MODE_IN_COMMUNICATION) && (in->standby)) {
+              /* Ignore standby in case of voip call because the voip input
+               * stream is closed in adev_close_input_stream()
+               */
+               ALOGD("%s: Ignore Standby in VOIP call", __func__);
+               return status;
+               }
+#endif
 
     pthread_mutex_lock(&in->lock);
     if (!in->standby) {
@@ -2370,9 +2500,16 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
         out->config.channels = audio_channel_count_from_out_mask(out->channel_mask);
         out->config.period_size = HDMI_MULTI_PERIOD_BYTES / (out->config.channels * 2);
 #ifdef COMPRESS_VOIP_ENABLED
+#ifdef VENDOR_EDIT
+        //use audio route for voice message,voice route is not necessary for voice message
+    } else if ((out->dev->mode == AUDIO_MODE_IN_COMMUNICATION) && (!(adev->is_wechat_16k)) &&
+               (out->flags == (AUDIO_OUTPUT_FLAG_DIRECT | AUDIO_OUTPUT_FLAG_VOIP_RX)) &&
+               (voice_extn_compress_voip_is_config_supported(config))) {
+#else
     } else if ((out->dev->mode == AUDIO_MODE_IN_COMMUNICATION) &&
                (out->flags == (AUDIO_OUTPUT_FLAG_DIRECT | AUDIO_OUTPUT_FLAG_VOIP_RX)) &&
                (voice_extn_compress_voip_is_config_supported(config))) {
+#endif
         ret = voice_extn_compress_voip_open_output_stream(out);
         if (ret != 0) {
             ALOGE("%s: Compress voip output cannot be opened, error:%d",
@@ -2493,11 +2630,19 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
         out->config = pcm_config_afe_proxy_playback;
         adev->voice_tx_output = out;
     } else if (out->flags & AUDIO_OUTPUT_FLAG_FAST) {
+#ifndef VENDOR_EDIT_AUDIOMIXER_PCM_24_BIT
+//lifei@OnLineRD.MultiMediaService, 2015/03/23, Modify for support PCM_24_BIT
+        out->format = AUDIO_FORMAT_PCM_16_BIT;
+#endif /* VENDOR_EDIT_AUDIOMIXER_PCM_24_BIT*/
         out->usecase = USECASE_AUDIO_PLAYBACK_LOW_LATENCY;
         out->config = pcm_config_low_latency;
         out->sample_rate = out->config.rate;
     } else {
         /* primary path is the default path selected if no other outputs are available/suitable */
+#ifndef VENDOR_EDIT_AUDIOMIXER_PCM_24_BIT
+//lifei@OnLineRD.MultiMediaService, 2015/03/23, Modify for support PCM_24_BIT
+        out->format = AUDIO_FORMAT_PCM_16_BIT;
+#endif /* VENDOR_EDIT_AUDIOMIXER_PCM_24_BIT*/
         out->usecase = USECASE_AUDIO_PLAYBACK_PRIMARY;
         out->config = pcm_config_deep_buffer;
         out->sample_rate = out->config.rate;
@@ -2613,6 +2758,76 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
 
     ALOGD("%s: enter: %s", __func__, kvpairs);
     parms = str_parms_create_str(kvpairs);
+#ifdef VENDOR_EDIT
+    //guoguangyi@mutimedia,to tell wechat voice message
+    ret = str_parms_get_str(parms, "wechat16k", value, sizeof(value));
+    if (ret >= 0){
+        adev->is_wechat_16k = !!atoi(value);
+    }
+//guoguangyi@mutimedia,2015.9.25,add interface for force earpiece
+    ret = str_parms_get_str(parms, "receiver_force", value, sizeof(value));
+    if ((ret >= 0) && (value[0] != '\0'))
+        {
+            if (!strncmp(value, "1", sizeof("1")))
+                {
+                    ALOGD("%s: set receiver playback flag", __func__);
+                    adev->force_device = AUDIO_DEVICE_OUT_EARPIECE | PCM_REOPEN_MARK;
+                }
+            else
+                {
+                    ALOGD("%s: clear receiver playback flag", __func__);
+                    adev->force_device = PCM_REOPEN_MARK;
+                    if(adev->primary_output && adev->primary_output->devices == AUDIO_DEVICE_OUT_EARPIECE){
+                        adev->primary_output->devices = adev->original_device & AUDIO_DEVICE_OUT_ALL;
+                        ALOGI("reset original devices:%#x", adev->primary_output->devices);
+                    }
+                }
+        }
+#endif
+
+#ifdef VENDOR_EDIT_DSP
+//#lifei@OnePlus.MultiMediaService, 2015/09/28 add Dirac set/get dsp interface
+    ret = str_parms_get_str(parms, "DiracEnable", value, sizeof(value));
+    if (ret >= 0) {
+        struct mixer_ctl *ctl;
+        ctl = mixer_get_ctl_by_name(adev->mixer, "SetDirac Enable");
+        if (strcmp(value, "true") == 0) {
+             adev->mIsHalDiracEnable = true;
+             mixer_ctl_set_value(ctl, 0, 1);
+             ALOGD("DSP Dirac effect SWITCH OPEN");
+        } else {
+             adev->mIsHalDiracEnable = false;
+             mixer_ctl_set_value(ctl, 0, 0);
+             ALOGD("DSP Dirac effect SWITCH OPEN");
+        }
+    }
+
+    ret = str_parms_get_str(parms, "DiracHeadset", value, sizeof(value));
+    if (ret >= 0) {
+        struct mixer_ctl *ctl;
+        ctl = mixer_get_ctl_by_name(adev->mixer, "Select Dirac Headset");
+        if (strcmp(value, "1") == 0) {
+             adev->mIsHalDiracHeadset = 1;
+             mixer_ctl_set_value(ctl, 0, 1);
+             ALOGD("DSP Dirac select headset 1");
+        } else if (strcmp(value, "2") == 0){
+             adev->mIsHalDiracHeadset = 2;
+             mixer_ctl_set_value(ctl, 0, 2);
+             ALOGD("DSP Dirac select headset 2");
+        } else if (strcmp(value, "3") == 0){
+             adev->mIsHalDiracHeadset = 3;
+             mixer_ctl_set_value(ctl, 0, 3);
+             ALOGD("DSP Dirac select headset 3");
+        } else if (strcmp(value, "4") == 0){
+             adev->mIsHalDiracHeadset = 4;
+             mixer_ctl_set_value(ctl, 0, 4);
+             ALOGD("DSP Dirac select headset 4");
+        }else {
+             ALOGD("DSP Dirac select headset is invalid");
+        }
+    }
+#endif
+/*add end*/
 
     ret = str_parms_get_str(parms, "SND_CARD_STATUS", value, sizeof(value));
     if (ret >= 0) {
@@ -3050,6 +3265,45 @@ static int adev_open(const hw_module_t *module, const char *name,
     adev->device.open_input_stream = adev_open_input_stream;
     adev->device.close_input_stream = adev_close_input_stream;
     adev->device.dump = adev_dump;
+#ifdef VENDOR_EDIT
+//guoguangyi@mutimedia,2015.9.25,add interface for force earpiece
+    adev->force_device = 0;
+    adev->original_device = 0;
+	adev->is_wechat_16k = false;
+#endif
+
+#ifdef VENDOR_EDIT_DSP
+//#lifei@OnePlus.MultiMediaService, 2015/09/28 add Dirac set/get dsp interface
+    char val_str[PROPERTY_VALUE_MAX] = { 0 };
+    if (property_get("persist.audio.DiracEnable", val_str, NULL) >= 0) {
+        if(!strcmp(val_str, "true")) {
+            ALOGD("HAL DiracEnable is true");
+            adev->mIsHalDiracEnable = true;
+        }else if (!strcmp(val_str, "false")) {
+            ALOGD("HAL DiracEnable is false");
+            adev->mIsHalDiracEnable = false;
+        }else {
+            ALOGD("HAL DiracEnable is invalid");
+        }
+    }
+    if (property_get("persist.audio.DiracHeadset", val_str, NULL) >= 0) {
+        if(!strcmp(val_str, "1")) {
+            ALOGD("HAL DiracHeadset is 1");
+            adev->mIsHalDiracHeadset = 1;
+        }else if (!strcmp(val_str, "2")) {
+            ALOGD("HAL DiracHeadset is 2");
+            adev->mIsHalDiracHeadset = 2;
+        }else if (!strcmp(val_str, "3")) {
+            ALOGD("HAL DiracHeadset is 3");
+            adev->mIsHalDiracHeadset = 3;
+        }else if (!strcmp(val_str, "4")) {
+            ALOGD("HAL DiracHeadset is 4");
+            adev->mIsHalDiracHeadset = 4;
+        }else {
+            ALOGD("HAL DiracHeadset is invalid");
+        }
+    }
+#endif/*VENDOR_EDIT_DSP*/
 
     /* Set the default route before the PCM stream is opened */
     adev->mode = AUDIO_MODE_NORMAL;

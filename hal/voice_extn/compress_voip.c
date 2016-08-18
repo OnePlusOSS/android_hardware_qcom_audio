@@ -379,7 +379,12 @@ static int voip_start_call(struct audio_device *adev,
                                     PCM_IN, voip_config);
         if (voip_data.pcm_tx && !pcm_is_ready(voip_data.pcm_tx)) {
             ALOGE("%s: %s", __func__, pcm_get_error(voip_data.pcm_tx));
+#ifndef VENDOR_EDIT
+/* xiaojun.lv@PhoneDpt.AudioDrv, 2014/09/11, modify for qcom low level error of pcm handle */
             pcm_close(voip_data.pcm_rx);
+#else
+            pcm_close(voip_data.pcm_tx);
+#endif
             voip_data.pcm_tx = NULL;
             if (voip_data.pcm_rx) {
                 pcm_close(voip_data.pcm_rx);

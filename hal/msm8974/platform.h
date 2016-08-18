@@ -51,6 +51,14 @@ enum {
     SND_DEVICE_OUT_HEADPHONES,
     SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES,
     SND_DEVICE_OUT_VOICE_HANDSET,
+#ifndef VENDOR_EDIT
+/*wangdongdong@MultiMediaService,2015/10/07,add output device for playback during voip*/
+    SND_DEVICE_OUT_VOIP_HANDSET,
+#endif /* VENDOR_EDIT */
+#ifdef VENDOR_EDIT
+/*lifei@OnePlus.MultiMediaService, 2015/08.24 add output device for Hand-held phone model*/
+    SND_DEVICE_OUT_VOICE_HANDSET_QOSOUND,
+#endif /* VENDOR_EDIT */
     SND_DEVICE_OUT_VOICE_SPEAKER,
     SND_DEVICE_OUT_VOICE_HEADPHONES,
     SND_DEVICE_OUT_HDMI,
@@ -122,6 +130,15 @@ enum {
     SND_DEVICE_IN_HANDSET_STEREO_DMIC,
     SND_DEVICE_IN_SPEAKER_STEREO_DMIC,
     SND_DEVICE_IN_CAPTURE_VI_FEEDBACK,
+#ifdef VENDOR_EDIT
+//xiaojun.lv@Phone.AudioDrv.Audio, 2014/05/30, Add for headset voice recognition
+    SND_DEVICE_IN_VOICE_REC_HEADSET_MIC,
+#endif /* VENDOR_EDIT */
+#ifdef VENDOR_EDIT
+/*wangdongdong@MultiMedia.AudioDrv on 2015-07-03,add for voip mic */
+    SND_DEVICE_IN_VOIP_MIC,
+#endif
+
     SND_DEVICE_IN_END,
 
     SND_DEVICE_MAX = SND_DEVICE_IN_END,
