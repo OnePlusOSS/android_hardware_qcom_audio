@@ -1053,6 +1053,9 @@ static void set_platform_defaults()
         backend_bit_width_table[dev] = CODEC_BACKEND_DEFAULT_BIT_WIDTH;
     }
 
+    backend_tag_table[SND_DEVICE_OUT_SPEAKER] = strdup("quat_i2s");
+	backend_tag_table[SND_DEVICE_OUT_VOICE_SPEAKER] = strdup("quat_i2s");
+    backend_tag_table[SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES] = strdup("speaker-and-headphones");
     // To overwrite these go to the audio_platform_info.xml file.
     backend_tag_table[SND_DEVICE_IN_BT_SCO_MIC] = strdup("bt-sco");
     backend_tag_table[SND_DEVICE_IN_BT_SCO_MIC_WB] = strdup("bt-sco-wb");
