@@ -45,7 +45,7 @@
 #endif
 
 #ifndef AUDIO_DEVICE_IN_PROXY
-#define AUDIO_DEVICE_IN_PROXY (AUDIO_DEVICE_BIT_IN | 0x2000000)
+#define AUDIO_DEVICE_IN_PROXY (AUDIO_DEVICE_BIT_IN | 0x1000000)
 #endif
 
 #ifndef INCALL_MUSIC_ENABLED
@@ -220,16 +220,16 @@ bool audio_extn_a2dp_is_ready();
 #endif
 
 #ifndef SSR_ENABLED
-#define audio_extn_ssr_check_usecase(in)                                  (0)
-#define audio_extn_ssr_set_usecase(in, config, channel_mask_updated)      (0)
-#define audio_extn_ssr_init(in, num_out_chan)                             (0)
+#define audio_extn_ssr_check_usecase(in)                                  (-ENOSYS)
+#define audio_extn_ssr_set_usecase(in, config, channel_mask_updated)      (-ENOSYS)
+#define audio_extn_ssr_init(in, num_out_chan)                             (-ENOSYS
 #define audio_extn_ssr_deinit()                                           (0)
 #define audio_extn_ssr_update_enabled()                                   (0)
-#define audio_extn_ssr_get_enabled()                                      (0)
-#define audio_extn_ssr_read(stream, buffer, bytes)                        (0)
+#define audio_extn_ssr_get_enabled()                                      (false)
+#define audio_extn_ssr_read(stream, buffer, bytes)                        (-ENOSYS)
 #define audio_extn_ssr_set_parameters(adev, parms)                        (0)
 #define audio_extn_ssr_get_parameters(adev, parms, reply)                 (0)
-#define audio_extn_ssr_get_stream()                                       (0)
+#define audio_extn_ssr_get_stream()                                       (NULL)
 #else
 bool audio_extn_ssr_check_usecase(struct stream_in *in);
 int audio_extn_ssr_set_usecase(struct stream_in *in,

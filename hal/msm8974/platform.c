@@ -514,7 +514,7 @@ static int acdb_device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES_EXTERNAL_1] = 130,
     [SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES_EXTERNAL_2] = 130,
     [SND_DEVICE_OUT_VOICE_HANDSET] = 7,
-    [SND_DEVICE_OUT_VOICE_SPEAKER] = 14,
+    [SND_DEVICE_OUT_VOICE_SPEAKER] = 15,
     [SND_DEVICE_OUT_VOICE_SPEAKER_VBAT] = 14,
     [SND_DEVICE_OUT_VOICE_SPEAKER_2] = 14,
     [SND_DEVICE_OUT_VOICE_SPEAKER_2_VBAT] = 14,
@@ -1202,6 +1202,9 @@ static void set_platform_defaults(struct platform_data * my_data)
         backend_bit_width_table[dev] = CODEC_BACKEND_DEFAULT_BIT_WIDTH;
     }
 
+    backend_tag_table[SND_DEVICE_OUT_SPEAKER] = strdup("quat_i2s");
+	backend_tag_table[SND_DEVICE_OUT_VOICE_SPEAKER] = strdup("quat_i2s");
+    backend_tag_table[SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES] = strdup("speaker-and-headphones");
     // To overwrite these go to the audio_platform_info.xml file.
     backend_tag_table[SND_DEVICE_IN_BT_SCO_MIC] = strdup("bt-sco");
     backend_tag_table[SND_DEVICE_IN_BT_SCO_MIC_WB] = strdup("bt-sco-wb");
@@ -1281,12 +1284,12 @@ static void set_platform_defaults(struct platform_data * my_data)
     hw_interface_table[SND_DEVICE_OUT_SPEAKER_AND_ANC_HEADSET] = strdup("SLIMBUS_0_RX-and-SLIMBUS_6_RX");
     hw_interface_table[SND_DEVICE_OUT_SPEAKER_AND_ANC_FB_HEADSET] = strdup("SLIMBUS_0_RX-and-SLIMBUS_6_RX");
     hw_interface_table[SND_DEVICE_OUT_ANC_HANDSET] = strdup("SLIMBUS_0_RX");
-    hw_interface_table[SND_DEVICE_OUT_SPEAKER_PROTECTED] = strdup("SLIMBUS_4_TX");
-    hw_interface_table[SND_DEVICE_OUT_VOICE_SPEAKER_PROTECTED] = strdup("SLIMBUS_4_TX");
-    hw_interface_table[SND_DEVICE_OUT_VOICE_SPEAKER_2_PROTECTED] = strdup("SLIMBUS_4_TX");
-    hw_interface_table[SND_DEVICE_OUT_SPEAKER_PROTECTED_VBAT] = strdup("SLIMBUS_4_TX");
-    hw_interface_table[SND_DEVICE_OUT_VOICE_SPEAKER_PROTECTED_VBAT] = strdup("SLIMBUS_4_TX");
-    hw_interface_table[SND_DEVICE_OUT_VOICE_SPEAKER_2_PROTECTED_VBAT] = strdup("SLIMBUS_4_TX");
+    hw_interface_table[SND_DEVICE_OUT_SPEAKER_PROTECTED] = strdup("SLIMBUS_0_RX");
+    hw_interface_table[SND_DEVICE_OUT_VOICE_SPEAKER_PROTECTED] = strdup("SLIMBUS_0_RX");
+    hw_interface_table[SND_DEVICE_OUT_VOICE_SPEAKER_2_PROTECTED] = strdup("SLIMBUS_0_RX");
+    hw_interface_table[SND_DEVICE_OUT_SPEAKER_PROTECTED_VBAT] = strdup("SLIMBUS_0_RX");
+    hw_interface_table[SND_DEVICE_OUT_VOICE_SPEAKER_PROTECTED_VBAT] = strdup("SLIMBUS_0_RX");
+    hw_interface_table[SND_DEVICE_OUT_VOICE_SPEAKER_2_PROTECTED_VBAT] = strdup("SLIMBUS_0_RX");
     hw_interface_table[SND_DEVICE_OUT_SPEAKER_WSA] = strdup("SLIMBUS_0_RX");
     hw_interface_table[SND_DEVICE_OUT_VOICE_SPEAKER_WSA] = strdup("SLIMBUS_0_RX");
     hw_interface_table[SND_DEVICE_OUT_VOICE_SPEAKER_2_WSA] = strdup("SLIMBUS_0_RX");
@@ -5230,7 +5233,10 @@ static bool platform_check_codec_backend_cfg(struct audio_device* adev,
                  ALOGD("%s:becf: afe: true napb active set rate to 44.1 khz",
                        __func__);
             }
-        } else if (na_mode != NATIVE_AUDIO_MODE_MULTIPLE_44_1) {
+
+        } else if (na_mode != NATIVE_AUDIO_MODE_MULTIPLE_44_1 ||
+                   ((backend_idx != HEADPHONE_44_1_BACKEND) &&
+                     (backend_idx != DSD_NATIVE_BACKEND))) {
             /*
              * Map native sampling rates to upper limit range
              * if multiple of native sampling rates are not supported.
@@ -5559,7 +5565,7 @@ int platform_get_snd_device_backend_index(snd_device_t device)
 
     ALOGV("%s: enter with device %d\n", __func__, device);
 
-    if ((device <= SND_DEVICE_MIN) || (device >= SND_DEVICE_MAX)) {
+    if ((device < SND_DEVICE_MIN) || (device >= SND_DEVICE_MAX)) {
         ALOGE("%s: Invalid snd_device = %d",
               __func__, device);
         be_dai_id = -EINVAL;

@@ -5,11 +5,12 @@ BOARD_USES_ALSA_AUDIO := true
 
 ifneq ($(TARGET_USES_AOSP), true)
 USE_CUSTOM_AUDIO_POLICY := 1
+BOARD_SUPPORTS_SOUND_TRIGGER := false
 AUDIO_FEATURE_ENABLED_COMPRESS_CAPTURE := false
 AUDIO_FEATURE_ENABLED_COMPRESS_VOIP := true
 AUDIO_FEATURE_ENABLED_EXTN_FORMATS := true
 AUDIO_FEATURE_ENABLED_EXTN_FLAC_DECODER := true
-AUDIO_FEATURE_ENABLED_EXTN_RESAMPLER := true
+AUDIO_FEATURE_ENABLED_EXTN_RESAMPLER := false
 AUDIO_FEATURE_ENABLED_FM_POWER_OPT := true
 AUDIO_FEATURE_ENABLED_HDMI_SPK := true
 AUDIO_FEATURE_ENABLED_PCM_OFFLOAD := true
@@ -21,7 +22,7 @@ AUDIO_FEATURE_ENABLED_ALAC_OFFLOAD := true
 AUDIO_FEATURE_ENABLED_APE_OFFLOAD := true
 AUDIO_FEATURE_ENABLED_AAC_ADTS_OFFLOAD := true
 AUDIO_FEATURE_ENABLED_PROXY_DEVICE := true
-AUDIO_FEATURE_ENABLED_SSR := true
+AUDIO_FEATURE_ENABLED_SSR := false
 AUDIO_FEATURE_ENABLED_DTS_EAGLE := false
 BOARD_USES_SRS_TRUEMEDIA := false
 DTS_CODEC_M_ := false
@@ -34,7 +35,7 @@ AUDIO_FEATURE_ENABLED_3D_AUDIO := true
 endif
 
 USE_XML_AUDIO_POLICY_CONF := 1
-BOARD_SUPPORTS_SOUND_TRIGGER_HAL := true
+#BOARD_SUPPORTS_SOUND_TRIGGER_HAL := true
 AUDIO_USE_LL_AS_PRIMARY_OUTPUT := true
 AUDIO_FEATURE_ENABLED_VBAT_MONITOR := true
 AUDIO_FEATURE_ENABLED_ANC_HEADSET := true
@@ -91,6 +92,9 @@ PRODUCT_COPY_FILES += \
     hardware/qcom/audio/configs/msm8998/sound_trigger_platform_info.xml:system/etc/sound_trigger_platform_info.xml \
     hardware/qcom/audio/configs/msm8998/graphite_ipc_platform_info.xml:system/etc/graphite_ipc_platform_info.xml \
     hardware/qcom/audio/configs/msm8998/audio_platform_info.xml:system/etc/audio_platform_info.xml
+# wangdongdong@MultiMediaService,2016/09/30,add smartpa firmware
+PRODUCT_COPY_FILES += \
+    hardware/qcom/audio/configs/msm8998/tfa98xx.cnt:system/etc/firmware/tfa98xx.cnt 
 
 #XML Audio configuration files
 ifeq ($(USE_XML_AUDIO_POLICY_CONF), 1)
