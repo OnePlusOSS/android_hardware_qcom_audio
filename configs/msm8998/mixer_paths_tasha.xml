@@ -607,6 +607,7 @@
     <ctl name="QUAT_MI2S_RX Audio Mixer MultiMedia7" value="0" />
     <ctl name="mono Profile" value="music_hq" />
     <ctl name="left Profile" value="0"/>
+    <ctl name="BOB Power" value="0" />
     <!-- tfa98xx end-->
 
     <!-- mic mode-->
@@ -2235,6 +2236,7 @@
     </path>
 
     <path name="handset">
+		<ctl name="BOB Power" value="1" />
         <ctl name="COMP7 Switch" value="1" />
         <ctl name="SLIM RX0 MUX" value="AIF_MIX1_PB" />
         <ctl name="SLIM_0_RX Channels" value="One" />
@@ -2278,6 +2280,7 @@
     </path>
 
     <path name="anc-handset">
+	<ctl name="BOB Power" value="1" />
         <ctl name="ANC Function" value="ON" />
         <ctl name="ANC Slot" value="6" />
         <ctl name="SLIM RX0 MUX" value="AIF_MIX1_PB" />
