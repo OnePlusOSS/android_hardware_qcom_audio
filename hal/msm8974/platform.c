@@ -1229,6 +1229,13 @@ static void set_platform_defaults(struct platform_data * my_data)
     }
 
     // To overwrite these go to the audio_platform_info.xml file.
+
+
+     backend_tag_table[SND_DEVICE_OUT_SPEAKER] = strdup("quat_i2s");
+     backend_tag_table[SND_DEVICE_OUT_VOICE_SPEAKER] = strdup("quat_i2s");
+     backend_tag_table[SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES] = strdup("speaker-and-headphones");
+	 backend_tag_table[SND_DEVICE_OUT_VOICE_SPEAKER_2] = strdup("quat_i2s");
+
     backend_tag_table[SND_DEVICE_IN_BT_SCO_MIC] = strdup("bt-sco");
     backend_tag_table[SND_DEVICE_IN_BT_SCO_MIC_WB] = strdup("bt-sco-wb");
     backend_tag_table[SND_DEVICE_IN_BT_SCO_MIC_NREC] = strdup("bt-sco");
@@ -1260,7 +1267,7 @@ static void set_platform_defaults(struct platform_data * my_data)
     backend_tag_table[SND_DEVICE_OUT_VOICE_SPEAKER_AND_VOICE_ANC_FB_HEADSET] = strdup("speaker-and-headphones");
 
     hw_interface_table[SND_DEVICE_OUT_HANDSET] = strdup("SLIMBUS_0_RX");
-    hw_interface_table[SND_DEVICE_OUT_SPEAKER] = strdup("SLIMBUS_0_RX");
+    hw_interface_table[SND_DEVICE_OUT_SPEAKER] = strdup("QUAT_MI2S_RX");
     hw_interface_table[SND_DEVICE_OUT_SPEAKER_EXTERNAL_1] = strdup("SLIMBUS_0_RX");
     hw_interface_table[SND_DEVICE_OUT_SPEAKER_EXTERNAL_2] = strdup("SLIMBUS_0_RX");
     hw_interface_table[SND_DEVICE_OUT_SPEAKER_REVERSE] = strdup("SLIMBUS_0_RX");
@@ -1269,7 +1276,7 @@ static void set_platform_defaults(struct platform_data * my_data)
     hw_interface_table[SND_DEVICE_OUT_HEADPHONES] = strdup("SLIMBUS_6_RX");
     hw_interface_table[SND_DEVICE_OUT_HEADPHONES_DSD] = strdup("SLIMBUS_2_RX");
     hw_interface_table[SND_DEVICE_OUT_HEADPHONES_44_1] = strdup("SLIMBUS_5_RX");
-    hw_interface_table[SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES] = strdup("SLIMBUS_0_RX-and-SLIMBUS_6_RX");
+    hw_interface_table[SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES] = strdup("QUAT_MI2S_RX-and-SLIMBUS_6_RX");
     hw_interface_table[SND_DEVICE_OUT_VOICE_SPEAKER_AND_VOICE_HEADPHONES] = strdup("SLIMBUS_0_RX-and-SLIMBUS_6_RX");
     hw_interface_table[SND_DEVICE_OUT_VOICE_SPEAKER_AND_VOICE_ANC_HEADSET] = strdup("SLIMBUS_0_RX-and-SLIMBUS_6_RX");
     hw_interface_table[SND_DEVICE_OUT_VOICE_SPEAKER_AND_VOICE_ANC_FB_HEADSET] = strdup("SLIMBUS_0_RX-and-SLIMBUS_6_RX");
@@ -3884,6 +3891,7 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
                 ALOGE("%s: something wrong: source type (%d) channel_count (%d) .."
                       " no combination found .. setting to mono", __func__,
                       my_data->source_mic_type, channel_count);
+
                 snd_device = SND_DEVICE_IN_SPEAKER_MIC;
             }
         } else if (out_device & AUDIO_DEVICE_OUT_WIRED_HEADPHONE ||

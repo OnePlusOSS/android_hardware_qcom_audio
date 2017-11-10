@@ -9,7 +9,7 @@ AUDIO_FEATURE_ENABLED_COMPRESS_CAPTURE := false
 AUDIO_FEATURE_ENABLED_COMPRESS_VOIP := true
 AUDIO_FEATURE_ENABLED_EXTN_FORMATS := true
 AUDIO_FEATURE_ENABLED_EXTN_FLAC_DECODER := true
-AUDIO_FEATURE_ENABLED_EXTN_RESAMPLER := true
+AUDIO_FEATURE_ENABLED_EXTN_RESAMPLER := false
 AUDIO_FEATURE_ENABLED_FM_POWER_OPT := true
 AUDIO_FEATURE_ENABLED_HDMI_SPK := true
 AUDIO_FEATURE_ENABLED_PCM_OFFLOAD := true
@@ -21,7 +21,7 @@ AUDIO_FEATURE_ENABLED_ALAC_OFFLOAD := true
 AUDIO_FEATURE_ENABLED_APE_OFFLOAD := true
 AUDIO_FEATURE_ENABLED_AAC_ADTS_OFFLOAD := true
 AUDIO_FEATURE_ENABLED_PROXY_DEVICE := true
-AUDIO_FEATURE_ENABLED_SSR := true
+AUDIO_FEATURE_ENABLED_SSR := false
 AUDIO_FEATURE_ENABLED_DTS_EAGLE := false
 BOARD_USES_SRS_TRUEMEDIA := false
 DTS_CODEC_M_ := false
@@ -34,7 +34,7 @@ AUDIO_FEATURE_ENABLED_3D_AUDIO := true
 endif
 
 USE_XML_AUDIO_POLICY_CONF := 1
-BOARD_SUPPORTS_SOUND_TRIGGER_HAL := true
+BOARD_SUPPORTS_SOUND_TRIGGER_HAL := false
 AUDIO_USE_LL_AS_PRIMARY_OUTPUT := true
 AUDIO_FEATURE_ENABLED_VBAT_MONITOR := true
 AUDIO_FEATURE_ENABLED_ANC_HEADSET := true
@@ -77,6 +77,7 @@ PRODUCT_COPY_FILES += \
     hardware/qcom/audio/configs/msm8998/audio_effects.conf:system/vendor/etc/audio_effects.conf \
     hardware/qcom/audio/configs/msm8998/mixer_paths.xml:system/etc/mixer_paths.xml \
     hardware/qcom/audio/configs/msm8998/mixer_paths_tasha.xml:system/etc/mixer_paths_tasha.xml \
+    hardware/qcom/audio/configs/msm8998/tfa98xx.cnt:system/etc/firmware/tfa98xx.cnt \
     hardware/qcom/audio/configs/msm8998/mixer_paths_tavil.xml:system/etc/mixer_paths_tavil.xml \
     hardware/qcom/audio/configs/msm8998/mixer_paths_skuk.xml:system/etc/mixer_paths_skuk.xml \
     hardware/qcom/audio/configs/msm8998/mixer_paths_skuk.xml:system/etc/mixer_paths_qvr.xml \
@@ -123,7 +124,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
 
 ##fluencetype can be "fluence" or "fluencepro" or "none"
 PRODUCT_PROPERTY_OVERRIDES += \
-ro.qc.sdk.audio.fluencetype=none\
+ro.qc.sdk.audio.fluencetype=fluencepro\
 persist.audio.fluence.voicecall=true\
 persist.audio.fluence.voicerec=false\
 persist.audio.fluence.speaker=true
