@@ -278,6 +278,12 @@ const uint32_t format_to_bitwidth_table[AUDIO_MAX_PCM_FORMATS] = {
     [AUDIO_FORMAT_PCM_24_BIT_PACKED] = sizeof(uint8_t) * 3,
 };
 
+#ifdef VENDOR_EDIT
+//maxim dsm feedback starting and stop
+extern int audio_extn_spkr_dsm_start_processing(struct audio_device *adev);
+extern void audio_extn_spkr_dsm_stop_processing(struct audio_device *adev);
+#endif
+
 const char * const use_case_table[AUDIO_USECASE_MAX] = {
     [USECASE_AUDIO_PLAYBACK_DEEP_BUFFER] = "deep-buffer-playback",
     [USECASE_AUDIO_PLAYBACK_LOW_LATENCY] = "low-latency-playback",
@@ -543,9 +549,9 @@ static void release_in_focus(struct stream_in *in)
         adev->adm_abandon_focus(adev->adm_data, in->capture_handle);
 }
 
-static int parse_snd_card_status(struct str_parms *parms, int *card,
+/*static int parse_snd_card_status(struct str_parms *parms, int *card,
                                  card_status_t *status)
-{
+%{
     char value[32]={0};
     char state[32]={0};
 
@@ -561,7 +567,7 @@ static int parse_snd_card_status(struct str_parms *parms, int *card,
     *status = !strcmp(state, "ONLINE") ? CARD_STATUS_ONLINE :
                                          CARD_STATUS_OFFLINE;
     return 0;
-}
+} */
 
 static inline void adjust_frames_for_device_delay(struct stream_out *out,
                                                   uint32_t *dsp_frames) {
@@ -1042,6 +1048,11 @@ int enable_snd_device(struct audio_device *adev,
         return 0;
     }
 
+#ifdef VENDOR_EDIT
+//maxim dsm start
+	if (platform_can_enable_spkr_prot_on_device(snd_device))
+		audio_extn_spkr_dsm_start_processing(adev);
+#endif
 
     if (audio_extn_spkr_prot_is_enabled())
          audio_extn_spkr_prot_calib_cancel(adev);
@@ -1136,6 +1147,12 @@ int disable_snd_device(struct audio_device *adev,
 
     if (adev->snd_dev_ref_cnt[snd_device] == 0) {
         ALOGD("%s: snd_device(%d: %s)", __func__, snd_device, device_name);
+
+#ifdef VENDOR_EDIT
+//maxim dsm feedback stop
+		if (platform_can_enable_spkr_prot_on_device(snd_device))
+			audio_extn_spkr_dsm_stop_processing(adev);
+#endif
 
         if (platform_can_enable_spkr_prot_on_device(snd_device) &&
              audio_extn_spkr_prot_is_enabled()) {
@@ -3637,7 +3654,7 @@ static bool output_drives_call(struct audio_device *adev, struct stream_out *out
 
 // note: this call is safe only if the stream_cb is
 // removed first in close_output_stream (as is done now).
-static void out_snd_mon_cb(void * stream, struct str_parms * parms)
+/*static void out_snd_mon_cb(void * stream, struct str_parms * parms)
 {
     if (!stream || !parms)
         return;
@@ -3670,7 +3687,7 @@ static void out_snd_mon_cb(void * stream, struct str_parms * parms)
         out_on_error(stream);
 
     return;
-}
+}*/
 
 static int get_alive_usb_card(struct str_parms* parms) {
     int card;
@@ -5179,7 +5196,7 @@ static int in_dump(const struct audio_stream *stream __unused,
     return 0;
 }
 
-static void in_snd_mon_cb(void * stream, struct str_parms * parms)
+/*static void in_snd_mon_cb(void * stream, struct str_parms * parms)
 {
     if (!stream || !parms)
         return;
@@ -5214,7 +5231,7 @@ static void in_snd_mon_cb(void * stream, struct str_parms * parms)
         in_standby(&in->stream.common);
 
     return;
-}
+}*/
 
 static int in_set_parameters(struct audio_stream *stream, const char *kvpairs)
 {
@@ -7281,7 +7298,7 @@ static int period_size_is_plausible_for_low_latency(int period_size)
     }
 }
 
-static void adev_snd_mon_cb(void *cookie, struct str_parms *parms)
+/*static void adev_snd_mon_cb(void *cookie, struct str_parms *parms)
 {
     bool is_snd_card_status = false;
     bool is_ext_device_status = false;
@@ -7313,7 +7330,7 @@ static void adev_snd_mon_cb(void *cookie, struct str_parms *parms)
     }
     pthread_mutex_unlock(&adev->lock);
     return;
-}
+}*/
 
 /* out and adev lock held */
 static int check_a2dp_restore_l(struct audio_device *adev, struct stream_out *out, bool restore)

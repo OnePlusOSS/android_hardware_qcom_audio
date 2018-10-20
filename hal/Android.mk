@@ -168,6 +168,9 @@ endif
 
 endif
 
+#ifdef VENDOR_EDIT,suzhiguang 2018-04-12,MAX smart pa
+LOCAL_SRC_FILES += audio_extn/spkr_dsm.c
+#endif
 ifeq ($(strip $(AUDIO_FEATURE_ENABLED_EXTN_FORMATS)),true)
 LOCAL_CFLAGS += -DAUDIO_EXTN_FORMATS_ENABLED
 endif
@@ -432,7 +435,7 @@ LOCAL_MODULE_TAGS := optional
 
 LOCAL_VENDOR_MODULE := true
 
-include $(BUILD_SHARED_LIBRARY)
+#include $(BUILD_SHARED_LIBRARY)
 
 LOCAL_CFLAGS += -Wno-unused-variable
 LOCAL_CFLAGS += -Wno-sign-compare
